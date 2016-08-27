@@ -1,8 +1,9 @@
 /* Starting file. Run using ```node app.js``` */
 var builder = require('botbuilder');
 var restify = require('restify');
+var prompts = require('./prompts');
 
-// # Top Level Bot Dialogue
+// # Connector
 var connector = new builder.ChatConnector({
     appId: process.env.MARKETBOTIO_APP_ID,
     appPassword: process.env.MARKETBOTIO_APP_PASSWORD
@@ -16,10 +17,29 @@ bot.dialog('/', new builder.IntentDialog()
         session.send("I didn't understand. Say hello to me!");
     }));
 */
+
+
+// # Begin dialog
+var intents = new builder.IntentDialog();
 var bot = new builder.UniversalBot(connector);
-bot.dialog('/', [
+//bot.dialog('/', 
+bot.dialog('/', intents);
+    intents.matches(/^hello/i, function (session) {
+        session.send("Hi there!");
+    })
+    intents.matches(/^website/i, [askCompany, answerQuestion('website', prompts.answerWebsite)])
+    intents.matches(/^price/i, [askCompany, answerQuestion('tickerPrice', prompts.answerPrice)])
+    .onDefault(builder.DialogAction.send("I'm sorry. I didn't understand."))
+
+//intents.matches(/^website/i,[askCompany, answerQuestion('website', prompts.answerWebsite)]); 
+
+
+bot.dialog('/welcome',
+[
     function (session) {
-        session.beginDialog('/determineTarget_001', session.userData.target_001);
+        session.send("Hello! I am Mark the Bot.");
+        
+        //session.beginDialog('/determineTarget_001', session.userData.target_001);
     },
     function (session, results) {
         session.userData.target_001 = results.response;
@@ -36,6 +56,7 @@ bot.dialog('/', [
     // Price
     // Compare
 ]);
+// # Begin Helper functions
 // ## Complete user profile
 bot.dialog('/ensureProfile', [
     function (session, args, next) {
@@ -93,6 +114,75 @@ bot.dialog('/determineTarget_001', [
     }
 ]);
 
+/** 
+ * This function the first step in the waterfall for intent handlers. It will use the company mentioned
+ * in the users question if specified and valid. Otherwise it will use the last company a user asked 
+ * about. If it the company is missing it will prompt the user to pick one. 
+ */
+function askCompany(session, args, next) {
+    // First check to see if we either got a company from LUIS or have a an existing company
+    // that we can multi-turn over.
+    var company;
+    var entity = builder.EntityRecognizer.findEntity(args.entities, 'CompanyName');
+    if (entity) {
+        // The user specified a company so lets look it up to make sure its valid.
+        // * This calls the underlying function Prompts.choice() uses to match a users response
+        //   to a list of choices. When you pass it an object it will use the field names as the
+        //   list of choices to match against. 
+        company = builder.EntityRecognizer.findBestMatch(data, entity.entity);
+    } else if (session.dialogData.company) {
+        // Just multi-turn over the existing company
+        company = session.dialogData.company;
+    }
+    
+    // Prompt the user to pick a ocmpany if they didn't specify a valid one.
+    if (!company) {
+        // Lets see if the user just asked for a company we don't know about.
+        var txt = entity ? session.gettext(prompts.companyUnknown, { company: entity.entity }) : prompts.companyMissing;
+        
+        // Prompt the user to pick a company from the list. They can also ask to cancel the operation.
+        builder.Prompts.choice(session, txt, dataSecurities);
+    } else {
+        // Great! pass the company to the next step in the waterfall which will answer the question.
+        // * This will match the format of the response returned from Prompts.choice().
+        next({ response: company })
+    }
+}
+
+/**
+ * This function generates a generic answer step for an intent handlers waterfall. The company to answer
+ * a question about will be passed into the step and the specified field from the data will be returned to 
+ * the user using the specified answer template. 
+ */
+function answerQuestion(field, answerTemplate) {
+    return function (session, results) {
+        // Check to see if we have a company. The user can cancel picking a company so IPromptResult.response
+        // can be null. 
+        if (results.response) {
+            // Save company for multi-turn case and compose answer            
+            var company = session.dialogData.company = results.response;
+            var answer = { company: company.entity, value: dataSecurities[company.entity][field] };
+            session.send(answerTemplate, answer);
+        } else {
+            session.send(prompts.cancel);
+        }
+    };
+}
+
+// ## Inline Data
+// ### Securities
+var dataSecurities = {
+  'BAC': {
+      tickerPrice: 1,
+      tickerPriceAsOf: 'Jan 1, 1900',
+      website: 'http://www.bankofamerica.com'
+  },
+  'JPM': {
+      tickerPrice: 2,
+      tickerPriceAsOf: 'Dec 19, 1980',
+      website: 'http://www.jpmorgan.com'
+  }
+};
 // Setup Restify Server
 var server = restify.createServer();
 server.post('/api/messages', connector.listen());
