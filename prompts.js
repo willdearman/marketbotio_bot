@@ -6,5 +6,6 @@ module.exports = {
     companyUnknown: "I don't know '%(company)s'. Pick a company from the list or say 'nevermind'.",
     companyMissing: "I can answer that first tell me what company you're interested in:",
     answerWebsite: "The website for %(company)s is %(value)s.",
-    answerPrice: "The price per share for %(company)s is %(value)s."
+    answerPrice: "The price per share for %(company)s is %(value)s.",
+    comparePrice: "There is %(company)s and %(company1)s one of them is valued at %(value)s."
 };
