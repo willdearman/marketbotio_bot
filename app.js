@@ -32,7 +32,7 @@ bot.dialog('/', [
     },
     function (session, results) {
         //session.send('Hello %s!', results.response);
-        session.send('You selected %s and %s!', results.responseOne, results.responseTwo);
+        session.send('You selected %s and %s!', results.response.EntityOne, results.response.EntityTwo);
     }
 ]);
 
@@ -48,8 +48,8 @@ bot.dialog('/askName', [
 // DIALOG: Compare two
 bot.dialog('/compare', [
     function (session, args, next) {
-        //session.dialogData.compareEntityOne = args || {};
-        if (!session.dialogData.compareEntityOne) {
+        session.dialogData.compare = args || {};
+        if (!session.dialogData.compare.EntityOne) {
             builder.Prompts.text(session, "Which entity?");
         } else {
             next();
@@ -59,9 +59,9 @@ bot.dialog('/compare', [
         //session.dialogData.compareEntityTwo = args || {};
         if (results.response) {
             //session.send(results.response)
-            session.dialogData.compareEntityOne = results.response;
+            session.dialogData.compare.EntityOne = results.response;
         }
-        if (!session.dialogData.compareEntityTwo) {
+        if (!session.dialogData.compare.EntityTwo) {
             builder.Prompts.text(session, "Which entity?");
         } else {
             next();
@@ -69,9 +69,9 @@ bot.dialog('/compare', [
     },
     function (session, results) {
         if (results.response) {
-            session.dialogData.compareEntityTwo = results.response;
+            session.dialogData.compare.EntityTwo = results.response;
         }
-        session.endDialogWithResult({ responseOne: session.dialogData.compareEntityOne, responseTwo: session.dialogData.compareEntityTwo });
+        session.endDialogWithResult({ response: session.dialogData.compare });
     }
 ]);
 
