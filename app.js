@@ -12,6 +12,12 @@ var prompts = require('./prompts');
 // Console
 var connector = new builder.ConsoleConnector().listen();
 
+// Natural Language Model
+var model = process.env.model || 'https://api.projectoxford.ai/luis/v1/application?id=1ce3aae2-1be0-4cb1-9757-5f2070c519aa&subscription-key=a88228f6-a522-4ea6-aa89-58a256b4bd53&q=';
+// var recognizer = new builder.LuisRecognizer(model);
+// var dialog = new builder.IntentDialog({ recognizers: [recognizer] });
+
+
 // Create bot and bind to console
 var bot = new builder.UniversalBot(connector);
 
@@ -19,14 +25,59 @@ var bot = new builder.UniversalBot(connector);
 var intents = new builder.IntentDialog();
 
 // Dialog
-bot.dialog('/', intents);
+bot.dialog('/', [
+    function (session) {
+        //session.beginDialog('/askName');
+        session.beginDialog('/compare');
+    },
+    function (session, results) {
+        //session.send('Hello %s!', results.response);
+        session.send('You selected %s and %s!', results.responseOne, results.responseTwo);
+    }
+]);
 
-intents.matches(/^hello/i, function (session) {
-        session.send("Hi there!");
-    })
+bot.dialog('/askName', [
+    function (session) {
+        builder.Prompts.text(session, 'Hi! What is your name?');
+    },
+    function (session, results) {
+        session.endDialogWithResult(results);
+    }
+]);
+///////////////////////
+// DIALOG: Compare two
+bot.dialog('/compare', [
+    function (session, args, next) {
+        //session.dialogData.compareEntityOne = args || {};
+        if (!session.dialogData.compareEntityOne) {
+            builder.Prompts.text(session, "Which entity?");
+        } else {
+            next();
+        }
+    },
+    function (session, results, next) {
+        //session.dialogData.compareEntityTwo = args || {};
+        if (results.response) {
+            //session.send(results.response)
+            session.dialogData.compareEntityOne = results.response;
+        }
+        if (!session.dialogData.compareEntityTwo) {
+            builder.Prompts.text(session, "Which entity?");
+        } else {
+            next();
+        }
+    },
+    function (session, results) {
+        if (results.response) {
+            session.dialogData.compareEntityTwo = results.response;
+        }
+        session.endDialogWithResult({ responseOne: session.dialogData.compareEntityOne, responseTwo: session.dialogData.compareEntityTwo });
+    }
+]);
 
-.onDefault(builder.DialogAction.send("I'm sorry. I didn't understand."))
+///////////////////////
 
+//////////////////////////////////////////////
 // Setup Restify Server (If Interface Connector turned on)
     //var server = restify.createServer();
     //server.post('/api/messages', connector.listen());
