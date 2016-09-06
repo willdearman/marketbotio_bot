@@ -13,7 +13,7 @@ var prompts = require('./prompts');
 var connector = new builder.ConsoleConnector().listen();
 
 // Natural Language Model
-var model = process.env.model || 'https://api.projectoxford.ai/luis/v1/application?id=1ce3aae2-1be0-4cb1-9757-5f2070c519aa&subscription-key=a88228f6-a522-4ea6-aa89-58a256b4bd53&q=';
+//var model = process.env.model || 'https://api.projectoxford.ai/luis/v1/application?id=1ce3aae2-1be0-4cb1-9757-5f2070c519aa&subscription-key=a88228f6-a522-4ea6-aa89-58a256b4bd53&q=';
 // var recognizer = new builder.LuisRecognizer(model);
 // var dialog = new builder.IntentDialog({ recognizers: [recognizer] });
 
@@ -44,38 +44,50 @@ bot.dialog('/askName', [
         session.endDialogWithResult(results);
     }
 ]);
+
 ///////////////////////
-// DIALOG: Compare two
+// DIALOG: [/compare] Compare two entities
 bot.dialog('/compare', [
     function (session, args, next) {
+        // TO DO: Specify element being compared between two entities, and extract value
         session.dialogData.compare = args || {};
-        if (!session.dialogData.compare.EntityOne) {
-            builder.Prompts.text(session, "Which entity?");
+        session.beginDialog('/askEntityName');
+    },
+    function (session, results, next) {
+        if (results.response){
+            session.dialogData.compare.EntityOne = results.response
+            next();
         } else {
             next();
         }
     },
+    function (session, args, next) {
+        session.beginDialog('/askEntityName');
+    },
     function (session, results, next) {
-        //session.dialogData.compareEntityTwo = args || {};
-        if (results.response) {
-            //session.send(results.response)
-            session.dialogData.compare.EntityOne = results.response;
-        }
-        if (!session.dialogData.compare.EntityTwo) {
-            builder.Prompts.text(session, "Which entity?");
+        if (results.response){
+            session.dialogData.compare.EntityTwo = results.response
+            next();
         } else {
             next();
         }
     },
     function (session, results) {
-        if (results.response) {
-            session.dialogData.compare.EntityTwo = results.response;
-        }
         session.endDialogWithResult({ response: session.dialogData.compare });
     }
 ]);
 
 ///////////////////////
+// FUNCTION: Ask Entity Name
+bot.dialog('/askEntityName', [
+    // TO DO: Add validation against data source
+    function (session) {
+        builder.Prompts.text(session, 'Which entity?')
+    },
+    function (session, results) {
+        session.endDialogWithResult(results);
+    }
+]);
 
 //////////////////////////////////////////////
 // Setup Restify Server (If Interface Connector turned on)
