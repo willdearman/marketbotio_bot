@@ -52,7 +52,13 @@ intents.matches(/^compare/i, [
         session.beginDialog('/compare');
     },
     function (session, results) {
-        session.send('You selected %s and %s!', results.response.EntityOne.entity, results.response.EntityTwo.entity);
+        // TO DO: Dynamic specification of field
+        var field = 'sharePrice'
+
+        // TO DO: Is there a better way to do calculations?
+        priceDiff = parseInt(data[results.response.EntityTwo.entity][field]) - parseInt(data[results.response.EntityOne.entity][field])
+
+        session.send('You selected %s and %s! The difference in price is %s.', results.response.EntityOne.entity, results.response.EntityTwo.entity,priceDiff);
     }
 ]);
 
