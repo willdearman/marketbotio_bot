@@ -1,52 +1,84 @@
-/* Starting file. Run using ```node app.js``` */
+/////////////////////////////////////////////////////////////////////////////////////////
+// REQUIREMENTS
 var builder = require('botbuilder');
 var restify = require('restify');
+
+/////////////////////////////////////////////////////////////////////////////////////////
+// EXTERNAL DATA
 var prompts = require('./prompts');
+var externalData = require('./externalDataTemp');
 
-// # Connector
-// Interface
-    //var connector = new builder.ChatConnector({
-    //    appId: process.env.MARKETBOTIO_APP_ID,
-    //    appPassword: process.env.MARKETBOTIO_APP_PASSWORD
-    //});
-// Console
+/////////////////////////////////////////////////////////////////////////////////////////
+// CONNECTOR
+// CONNECTOR: Platform
+    // DON'T FORGET TO UNCOMMENT RESTIFY AT END OF FILE
+    /* 
+    var connector = new builder.ChatConnector({
+    appId: process.env.MARKETBOTIO_APP_ID,
+    appPassword: process.env.MARKETBOTIO_APP_PASSWORD
+    });
+    */
+// CONNECTOR: Console
 var connector = new builder.ConsoleConnector().listen();
-
-// Natural Language Model
-//var model = process.env.model || 'https://api.projectoxford.ai/luis/v1/application?id=1ce3aae2-1be0-4cb1-9757-5f2070c519aa&subscription-key=a88228f6-a522-4ea6-aa89-58a256b4bd53&q=';
-// var recognizer = new builder.LuisRecognizer(model);
-// var dialog = new builder.IntentDialog({ recognizers: [recognizer] });
-
 
 // Create bot and bind to console
 var bot = new builder.UniversalBot(connector);
 
-// Create intents variable. Ultimately replace this with:
-var intents = new builder.IntentDialog();
+/////////////////////////////////////////////////////////////////////////////////////////
+// NATURAL LANGUAGE
+// TO DO: Add LUIS model
+/*
+    var model = process.env.model || 'https://api.projectoxford.ai/luis/v1/application?id=1ce3aae2-1be0-4cb1-9757-5f2070c519aa&subscription-key=a88228f6-a522-4ea6-aa89-58a256b4bd53&q=';
+    var recognizer = new builder.LuisRecognizer(model);
+    var dialog = new builder.IntentDialog({ recognizers: [recognizer] });
+*/
 
-// Dialog
-bot.dialog('/', [
+/////////////////////////////////////////////////////////////////////////////////////////
+// INTENTS
+var intents = new builder.IntentDialog();
+bot.dialog('/', intents);
+
+// INTENTS: Compare
+intents.matches(/^compare/i, [
     function (session) {
-        //session.beginDialog('/askName');
         session.beginDialog('/compare');
     },
     function (session, results) {
-        //session.send('Hello %s!', results.response);
         session.send('You selected %s and %s!', results.response.EntityOne, results.response.EntityTwo);
     }
 ]);
 
-bot.dialog('/askName', [
+// INTENTS: Default
+intents.onDefault([
+    function (session, args, next) {
+        if (!session.userData.name) {
+            // TO DO: Add welcome text to prompts.js
+            session.send("I am Mark the Bot from MarkBot.io. I'm not quite ready for users yet, but let's have fun anyway!")
+            session.beginDialog('/profile');
+        } else {
+            next();
+        }
+    },
+    function (session, results) {
+        session.send('Hello %s!', session.userData.name);
+    }
+]);
+
+/////////////////////////////////////////////////////////////////////////////////////////
+// DIALOG
+
+// DIALOG: Profile (What is your name?)
+bot.dialog('/profile', [
     function (session) {
         builder.Prompts.text(session, 'Hi! What is your name?');
     },
     function (session, results) {
-        session.endDialogWithResult(results);
+        session.userData.name = results.response;
+        session.endDialog();
     }
 ]);
 
-///////////////////////
-// DIALOG: [/compare] Compare two entities
+// DIALOG: Compare two entities (/compare)
 bot.dialog('/compare', [
     function (session, args, next) {
         // TO DO: Specify element being compared between two entities, and extract value
@@ -77,8 +109,7 @@ bot.dialog('/compare', [
     }
 ]);
 
-///////////////////////
-// FUNCTION: Ask Entity Name
+// DIALOG: Ask Entity Name
 bot.dialog('/askEntityName', [
     // TO DO: Add validation against data source
     function (session) {
