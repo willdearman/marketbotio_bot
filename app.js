@@ -49,10 +49,12 @@ bot.dialog('/', intents);
 // INTENTS: Compare
 intents.matches(/^compare/i, [
     function (session) {
+        session.send("OK. I will compare two values.")
         session.beginDialog('/compare');
     },
     function (session, results) {
         // TO DO: Dynamic specification of field
+        session.send("OK. I will use Share Price.")
         var field = 'sharePrice'
 
         // TO DO: Is there a better way to do calculations?
@@ -97,11 +99,12 @@ bot.dialog('/compare', [
     function (session, args, next) {
         // TO DO: Specify element being compared between two entities, and extract value
         session.dialogData.compare = args || {};
+        session.send("First security to compare:")
         session.beginDialog('/askEntityName');
     },
     function (session, results, next) {
         if (results.response){
-            console.log(results.response);
+            //console.log(results.response);
             session.dialogData.compare.EntityOne = results.response
             next();
         } else {
@@ -109,11 +112,12 @@ bot.dialog('/compare', [
         }
     },
     function (session, args, next) {
+        session.send("Second security to compare:")
         session.beginDialog('/askEntityName');
     },
     function (session, results, next) {
         if (results.response){
-            console.log(results.response);
+            //console.log(results.response);
             session.dialogData.compare.EntityTwo = results.response
             next();
         } else {
@@ -127,17 +131,18 @@ bot.dialog('/compare', [
         session.endDialogWithResult({ response: session.dialogData.compare });
     }
 ]);
+/////////////////////////////////////////////////////////////////////////////////////////
+// SUPPORTING DIALOG
 
-// DIALOG: Ask Entity Name
+// SUPPORTING DIALOG: Ask Entity Name
 bot.dialog('/askEntityName', [
     function askCompany(session, args, next) {
     var company;
     var args = {};
     var entity = builder.EntityRecognizer.findEntity(args.entities, 'CompanyName');
 
-    // TO DO: Add validation against data source
     if (entity) {
-        // The user specified a company so lets look it up to make sure its valid.
+        // Ensures specified company/entity is valid
         // * This calls the underlying function Prompts.choice() uses to match a users response
         //   to a list of choices. When you pass it an object it will use the field names as the
         //   list of choices to match against. 
@@ -147,7 +152,7 @@ bot.dialog('/askEntityName', [
         company = session.dialogData.company;
     }
     
-    // Prompt the user to pick a ocmpany if they didn't specify a valid one.
+    // If company not set by passing Entity, then prompt choice
     if (!company) {
         // Lets see if the user just asked for a company we don't know about.
         var txt = entity ? session.gettext(prompts.companyUnknown, { company: entity.entity }) : prompts.companyMissing;
