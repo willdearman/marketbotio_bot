@@ -1,4 +1,4 @@
-var data = {
+module.exports = {
   'Microsoft': {
       acquisitions: 170,
       ipoDate: 'Mar 13, 1986',
