@@ -53,18 +53,37 @@ intents.matches(/^compare/i, [
         session.beginDialog('/compare');
     },
     function (session, results) {
+        
+        var entityResponse = session.userData.compareEntityData = results.response;
+        
         // TO DO: Dynamic specification of field
-        session.send("OK. I will use Share Price.")
         var field = 'priceHistory'
-        var historicalDate = "1900-01-01"
+        session.send("OK. I will use Share Price.")
 
-        //session.send(data[results.response.EntityTwo.entity][field][historicalDate]);
-        //session.send(data[results.response.EntityOne.entity][field][historicalDate]);
+        // TO DO: Session to specify date
+        var compareDate = session.userData.compareEntityData.compareDate
+        session.send('Compare Date is %s', compareDate)
+        //var historicalDate = compareDate //"1900-01-01"
 
-        // TO DO: Is there a better way to do calculations?
-        priceDiff = parseInt(data[results.response.EntityTwo.entity][field][historicalDate]) - parseInt(data[results.response.EntityOne.entity][field][historicalDate])
+        // Check if value is not available on specified date, else response
+        var valueEntityOne = parseInt(data[entityResponse.EntityOne.entity][field][compareDate])
+        var valueEntityTwo = parseInt(data[entityResponse.EntityTwo.entity][field][compareDate])
 
-        session.send('You selected %s and %s! The difference in price on %s is %s.', results.response.EntityOne.entity, results.response.EntityTwo.entity,historicalDate, priceDiff);
+        if (!valueEntityOne){
+            session.send('Sorry. I do not have the %s of %s at %s.',field,entityResponse.EntityOne.entity,compareDate)
+            session.cancelDialog();
+        } else if(!valueEntityTwo){
+            session.send('Sorry. I do not have the %s of %s at %s.',field,entityResponse.EntityTwo.entity,compareDate)
+            session.cancelDialog();
+        } else { 
+            // TO DO: Is there a better way to do calculations?
+            //priceDiff = parseInt(data[results.response.EntityTwo.entity][field][historicalDate]) - parseInt(data[results.response.EntityOne.entity][field][historicalDate])
+            priceDiff = valueEntityTwo - valueEntityOne
+            session.send('You selected %s and %s! The difference in price on %s is %s.', entityResponse.EntityOne.entity, entityResponse.EntityTwo.entity,compareDate, priceDiff);
+        }
+
+
+
     }
 ]);
 
@@ -87,7 +106,7 @@ intents.onDefault([
 /////////////////////////////////////////////////////////////////////////////////////////
 // DIALOG
 
-// DIALOG: Profile (What is your name?)
+// DIALOG (/profile): Ask Name
 bot.dialog('/profile', [
     function (session) {
         builder.Prompts.text(session, 'Hi! What is your name?');
@@ -98,7 +117,7 @@ bot.dialog('/profile', [
     }
 ]);
 
-// DIALOG: Compare two entities (/compare)
+// DIALOG (/compare): Returns object with two entity child objects
 bot.dialog('/compare', [
     function (session, args, next) {
         // TO DO: Specify element being compared between two entities, and extract value
@@ -128,6 +147,18 @@ bot.dialog('/compare', [
             next();
         }
     },
+    function (session, args, next) {
+        session.beginDialog('/askCompareDate');
+    },
+    function (session, results, next) {
+        if (results.response){
+            console.log(results.response);
+            session.dialogData.compare.compareDate = results.response
+            next();
+        } else {
+            next();
+        }
+    },
     function (session, results) {
     //var answer = { company: entityOne.entity, value: data[entityOne.entity][acquisitions] };
     //session.send('answerPrice', answer);
@@ -138,7 +169,7 @@ bot.dialog('/compare', [
 /////////////////////////////////////////////////////////////////////////////////////////
 // SUPPORTING DIALOG
 
-// SUPPORTING DIALOG: Ask Entity Name
+// SUPPORTING DIALOG (/askEntityName): Prompts for entity choice, and returns entity object
 bot.dialog('/askEntityName', [
     function askCompany(session, args, next) {
     var company;
@@ -169,6 +200,22 @@ bot.dialog('/askEntityName', [
         next({ response: company })
     }
 }
+]);
+
+// SUPPORTING DIALOG (/askCompareDate): Prompts for date choice, requires entity to have value from that date, and returns date.
+bot.dialog('/askCompareDate', [
+    function askDate (session, args, next) {
+    //var compareDate = session.userData.compareEntityData.compareDate;
+    var compareDate;
+    if (!compareDate) {
+        // TO DO: Add date validation
+        builder.Prompts.text(session, 'For what date?');
+    } else {
+        // TO DO: Store in session?
+        session.userData.compareEntityData.compareDate = compareDate
+        next({ response: compareDate })
+    }
+    }
 ]);
 
 //////////////////////////////////////////////

@@ -8,7 +8,6 @@ module.exports = {
       website: 'http://www.microsoft.com',
       priceHistory: 
           {
-              "1900-01-01": 1,
               "1900-01-02": 2
           }
   },
