@@ -6,7 +6,11 @@ module.exports = {
       description: 'Microsoft, a software corporation, develops licensed and support products and services ranging from personal use to enterprise application.',
       founders: 'Bill Gates and Paul Allen',
       website: 'http://www.microsoft.com',
-      sharePrice: 1
+      priceHistory: 
+          {
+              "1900-01-01": 1,
+              "1900-01-02": 2
+          }
   },
   'Apple': {
       acquisitions: 72,
@@ -15,7 +19,11 @@ module.exports = {
       description: 'Apple is a multinational corporation that designs, manufactures, and markets consumer electronics, personal computers, and software.',
       founders: 'Kevin Harvey, Steve Wozniak, Steve Jobs, and Ron Wayne',
       website: 'http://www.apple.com',
-      sharePrice: 2
+      priceHistory: 
+          {
+              "1900-01-01": 3,
+              "1900-01-02": 4
+          }
   },
   'Google': {
       acquisitions: 39,
@@ -24,7 +32,11 @@ module.exports = {
       description: 'Google is a multinational corporation that is specialized in internet-related services and products.',
       founders: 'Baris Gultekin, Michoel Ogince, Sergey Brin, and Larry Page',
       website: 'http://www.google.com',
-      sharePrice: 3
+      priceHistory: 
+          {
+              "1900-01-01": 5,
+              "1900-01-02": 6
+          }
   },
   'Amazon': {
       acquisitions: 58,
@@ -33,6 +45,10 @@ module.exports = {
       description: 'Amazon.com is an international e-commerce website for consumers, sellers, and content creators.',
       founders: 'Sachin Agarwal and Jeff Bezos',
       website: 'http://amazon.com',
-      sharePrice: 4
+      priceHistory: 
+          {
+              "1900-01-01": 7,
+              "1900-01-02": 8
+          }
   }
 }

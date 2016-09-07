@@ -55,12 +55,16 @@ intents.matches(/^compare/i, [
     function (session, results) {
         // TO DO: Dynamic specification of field
         session.send("OK. I will use Share Price.")
-        var field = 'sharePrice'
+        var field = 'priceHistory'
+        var historicalDate = "1900-01-01"
+
+        //session.send(data[results.response.EntityTwo.entity][field][historicalDate]);
+        //session.send(data[results.response.EntityOne.entity][field][historicalDate]);
 
         // TO DO: Is there a better way to do calculations?
-        priceDiff = parseInt(data[results.response.EntityTwo.entity][field]) - parseInt(data[results.response.EntityOne.entity][field])
+        priceDiff = parseInt(data[results.response.EntityTwo.entity][field][historicalDate]) - parseInt(data[results.response.EntityOne.entity][field][historicalDate])
 
-        session.send('You selected %s and %s! The difference in price is %s.', results.response.EntityOne.entity, results.response.EntityTwo.entity,priceDiff);
+        session.send('You selected %s and %s! The difference in price on %s is %s.', results.response.EntityOne.entity, results.response.EntityTwo.entity,historicalDate, priceDiff);
     }
 ]);
 
