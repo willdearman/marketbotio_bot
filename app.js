@@ -80,19 +80,13 @@ intents.matches(/^compare/i, [
         // Filter uses session elements compareAttributeChild (e.g. Date) and compareAttributeValue (e.g. 1900-01-01)
         var entityOneCompare = data[entityResponse.EntityOne.entity][compareAttribute];
         var entityOneCompare = entityOneCompare.filter(filterByAttributeValue);
-        //console.log('Remaining Entity One:\n', entityOneCompare);
 
         var entityTwoCompare = data[entityResponse.EntityTwo.entity][compareAttribute];
         var entityTwoCompare = entityTwoCompare.filter(filterByAttributeValue);
-        //console.log('Remaining Entity Two:\n', entityOneCompare);
 
         // The math of the comparison. Eventually move this into its own dialog.
         // ASSUMPTION: Only returns first value in array
         var entityOneCompareValue = parseFloat(entityOneCompare[0][returnAttributeChild])
-        //console.log('entityOneCompare',entityOneCompare)
-        //console.log('returnAttributeChild',returnAttributeChild)
-        //console.log('entityOneCompare[returnAttributeChild]',entityOneCompare[0][returnAttributeChild])
-        //console.log('entityOneCompareValue',entityOneCompareValue)
         var entityTwoCompareValue = parseFloat(entityTwoCompare[0][returnAttributeChild])
         var priceDiffValue = entityTwoCompareValue - entityOneCompareValue
         var priceDiffPct = session.userData.compareEntityData.priceDiffPct = priceDiffValue / entityOneCompareValue
@@ -192,7 +186,6 @@ bot.dialog('/compare', [
     },
     function (session, results, next) {
         if (results.response) {
-            //console.log(results.response);
             session.dialogData.compare.compareAttributeValue = results.response
             next();
         } else {
@@ -200,9 +193,6 @@ bot.dialog('/compare', [
         }
     },
     function (session, results) {
-        //var answer = { company: entityOne.entity, value: data[entityOne.entity][acquisitions] };
-        //session.send('answerPrice', answer);
-        //session.send('You selected %s and %s!', results.response.EntityOne, results.response.EntityTwo);
         session.endDialogWithResult({ response: session.dialogData.compare });
     }
 ]);
@@ -228,8 +218,7 @@ bot.dialog('/evaluateChange', [
             next();
         }
         },
-    function(session,results, next){
-        //console.log('results.response',results.response)   
+    function(session,results, next){ 
         if (results.response == "Yes") {
             session.send('I will check what events occurred around that time...')
             session.send('Unfortunately, I do not have that ability yet.')
@@ -297,6 +286,7 @@ bot.dialog('/askCompareDate', [
         }
     }
 ]);
+
 // SUPPORTING DIALOG (/askAgreeAddResearch): Prompts user to accept additional research
 bot.dialog('/askAgreeAddResearch', [
     function (session, args, next) {
