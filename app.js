@@ -1,23 +1,26 @@
 /////////////////////////////////////////////////////////////////////////////////////////
 // REQUIREMENTS
+/////////////////////////////////////////////////////////////////////////////////////////
 var builder = require('botbuilder');
 var restify = require('restify');
 
 /////////////////////////////////////////////////////////////////////////////////////////
 // EXTERNAL DATA
+/////////////////////////////////////////////////////////////////////////////////////////
 var prompts = require('./prompts');
 var data = require('./externalDataTemp');
 
 /////////////////////////////////////////////////////////////////////////////////////////
 // CONNECTOR
+/////////////////////////////////////////////////////////////////////////////////////////
 // CONNECTOR: Platform
-    // DON'T FORGET TO UNCOMMENT RESTIFY AT END OF FILE
-    /*
-    var connector = new builder.ChatConnector({
-    appId: process.env.MARKETBOTIO_APP_ID,
-    appPassword: process.env.MARKETBOTIO_APP_PASSWORD
-    });
-    */
+// DON'T FORGET TO UNCOMMENT RESTIFY AT END OF FILE
+/*
+var connector = new builder.ChatConnector({
+appId: process.env.MARKETBOTIO_APP_ID,
+appPassword: process.env.MARKETBOTIO_APP_PASSWORD
+});
+*/
 // CONNECTOR: Console
 var connector = new builder.ConsoleConnector().listen();
 
@@ -33,15 +36,16 @@ var bot = new builder.UniversalBot(connector);
     var dialog = new builder.IntentDialog({ recognizers: [recognizer] });
 */
 // From Crunchbot demo
-    var model = process.env.model || 'https://api.projectoxford.ai/luis/v1/application?id=56c73d36-e6de-441f-b2c2-6ba7ea73a1bf&subscription-key=6d0966209c6e4f6b835ce34492f3e6d9&q=';
-    var recognizer = new builder.LuisRecognizer(model);
-    var intents = new builder.IntentDialog({ recognizers: [recognizer] });
+var model = process.env.model || 'https://api.projectoxford.ai/luis/v1/application?id=56c73d36-e6de-441f-b2c2-6ba7ea73a1bf&subscription-key=6d0966209c6e4f6b835ce34492f3e6d9&q=';
+var recognizer = new builder.LuisRecognizer(model);
+var intents = new builder.IntentDialog({ recognizers: [recognizer] });
 
-    // Base intents
-    // var intents = new builder.IntentDialog();
+// Base intents
+// var intents = new builder.IntentDialog();
 
 /////////////////////////////////////////////////////////////////////////////////////////
 // INTENTS
+/////////////////////////////////////////////////////////////////////////////////////////
 bot.dialog('/', intents);
 
 //intents.matches(/^compare/i, '/compare');
@@ -53,38 +57,73 @@ intents.matches(/^compare/i, [
         session.beginDialog('/compare');
     },
     function (session, results) {
-        
+
         var entityResponse = session.userData.compareEntityData = results.response;
+
+        // ASSUMPTION: Parent / Child attribute relationship exists in data. Expects 'compareAttribute' to be an array.
+        // TO DO: Set via dialog
+        var compareAttribute = session.userData.compareAttribute = 'priceHistory'
+        var compareAttributeChild = session.userData.compareAttributeChild = 'asOfDate';
+
+        // Set attribute that you want your results to represent
+        // RESEARCH: Are there times the user will want something other than price (e.g. volume, etc.)?
+        var returnAttributeChild = session.userData.returnAttributeChild = 'price';
+
+        // This is the value you are filtering 'compareAttributeChild' for in filterByAttributeValue()
+        // Initially setting to be the compare date in the session, but will expand to values for other fields
+        // TO DO: Set via dialog
+        var compareAttributeValue = session.userData.compareEntityData.compareAttributeValue;
+        console.log('Compare Date is %s', compareAttributeValue)
+
+        // Entity data for attribute specified in compareAttribute (parent)
+        // Entity selection is made in dialog '/compare'
+        // Filter uses session elements compareAttributeChild (e.g. Date) and compareAttributeValue (e.g. 1900-01-01)
+        var entityOneCompare = data[entityResponse.EntityOne.entity][compareAttribute];
+        var entityOneCompare = entityOneCompare.filter(filterByAttributeValue);
+        //console.log('Remaining Entity One:\n', entityOneCompare);
+
+        var entityTwoCompare = data[entityResponse.EntityTwo.entity][compareAttribute];
+        var entityTwoCompare = entityTwoCompare.filter(filterByAttributeValue);
+        //console.log('Remaining Entity Two:\n', entityOneCompare);
+
+        // The math of the comparison. Eventually move this into its own dialog.
+        // ASSUMPTION: Only returns first value in array
+        var entityOneCompareValue = parseFloat(entityOneCompare[0][returnAttributeChild])
+        //console.log('entityOneCompare',entityOneCompare)
+        //console.log('returnAttributeChild',returnAttributeChild)
+        //console.log('entityOneCompare[returnAttributeChild]',entityOneCompare[0][returnAttributeChild])
+        //console.log('entityOneCompareValue',entityOneCompareValue)
+        var entityTwoCompareValue = parseFloat(entityTwoCompare[0][returnAttributeChild])
+        var priceDiffValue = entityTwoCompareValue - entityOneCompareValue
+        var priceDiffPct = session.userData.compareEntityData.priceDiffPct = priceDiffValue / entityOneCompareValue
+
+        // Response to user
+        // TO DO: Move to prompts
+        session.send('You asked me to compare the %s of %s and %s on %s. The dollar difference is %s or %s.', 
+            returnAttributeChild,
+            entityResponse.EntityOne.entity, 
+            entityResponse.EntityTwo.entity,
+            compareAttributeValue, 
+            priceDiffValue,
+            (priceDiffPct * 100) + '%');
         
-        // TO DO: Dynamic specification of field
-        var field = 'priceHistory'
-        session.send("OK. I will use Share Price.")
+        session.beginDialog('/evaluateChange');
 
-        // TO DO: Session to specify date
-        var compareDate = session.userData.compareEntityData.compareDate
-        session.send('Compare Date is %s', compareDate)
-        //var historicalDate = compareDate //"1900-01-01"
-
-        // Check if value is not available on specified date, else response
-        var valueEntityOne = parseInt(data[entityResponse.EntityOne.entity][field][compareDate])
-        var valueEntityTwo = parseInt(data[entityResponse.EntityTwo.entity][field][compareDate])
-
-        if (!valueEntityOne){
-            session.send('Sorry. I do not have the %s of %s at %s.',field,entityResponse.EntityOne.entity,compareDate)
-            session.cancelDialog();
-        } else if(!valueEntityTwo){
-            session.send('Sorry. I do not have the %s of %s at %s.',field,entityResponse.EntityTwo.entity,compareDate)
-            session.cancelDialog();
-        } else { 
-            // TO DO: Is there a better way to do calculations?
-            //priceDiff = parseInt(data[results.response.EntityTwo.entity][field][historicalDate]) - parseInt(data[results.response.EntityOne.entity][field][historicalDate])
-            priceDiff = valueEntityTwo - valueEntityOne
-            session.send('You selected %s and %s! The difference in price on %s is %s.', entityResponse.EntityOne.entity, entityResponse.EntityTwo.entity,compareDate, priceDiff);
-        }
-
-
-
+        
+        // Helper Functions
+        function filterByAttributeValue(obj) {
+            var compareAttributeChild = session.userData.compareAttributeChild;
+            var compareAttributeValue = session.userData.compareEntityData.compareAttributeValue;
+            //console.log('Attribute: %s', compareValue);
+            if (obj[compareAttributeChild] !== undefined && obj[compareAttributeChild] == compareAttributeValue) {
+                return true;
+            } else {
+                //invalidEntries++;
+                return false;
+            }
+        };
     }
+
 ]);
 
 // INTENTS: Default
@@ -105,6 +144,7 @@ intents.onDefault([
 
 /////////////////////////////////////////////////////////////////////////////////////////
 // DIALOG
+/////////////////////////////////////////////////////////////////////////////////////////
 
 // DIALOG (/profile): Ask Name
 bot.dialog('/profile', [
@@ -126,7 +166,7 @@ bot.dialog('/compare', [
         session.beginDialog('/askEntityName');
     },
     function (session, results, next) {
-        if (results.response){
+        if (results.response) {
             //console.log(results.response);
             session.dialogData.compare.EntityOne = results.response
             next();
@@ -139,7 +179,7 @@ bot.dialog('/compare', [
         session.beginDialog('/askEntityName');
     },
     function (session, results, next) {
-        if (results.response){
+        if (results.response) {
             //console.log(results.response);
             session.dialogData.compare.EntityTwo = results.response
             next();
@@ -151,70 +191,129 @@ bot.dialog('/compare', [
         session.beginDialog('/askCompareDate');
     },
     function (session, results, next) {
-        if (results.response){
-            console.log(results.response);
-            session.dialogData.compare.compareDate = results.response
+        if (results.response) {
+            //console.log(results.response);
+            session.dialogData.compare.compareAttributeValue = results.response
             next();
         } else {
             next();
         }
     },
     function (session, results) {
-    //var answer = { company: entityOne.entity, value: data[entityOne.entity][acquisitions] };
-    //session.send('answerPrice', answer);
+        //var answer = { company: entityOne.entity, value: data[entityOne.entity][acquisitions] };
+        //session.send('answerPrice', answer);
         //session.send('You selected %s and %s!', results.response.EntityOne, results.response.EntityTwo);
         session.endDialogWithResult({ response: session.dialogData.compare });
     }
 ]);
+
+bot.dialog('/evaluateChange', [
+    function (session, args, next){
+        var priceDiffPct = session.userData.compareEntityData.priceDiffPct;
+
+        // TO DO: Need evaluation method for material differences.
+        if((priceDiffPct > .10) || (priceDiffPct < -0.10)) {
+            session.send('Wow. %s sounds like a lot.', (priceDiffPct * 100) + '%');
+            session.dialogData.followupDialog = 'TRUE'
+            next();
+        } else {
+            next();
+        }
+        },
+    function(session) {
+        // TO DO: Update to user affirmative utterances.
+        if (session.dialogData.followupDialog == 'TRUE') {
+            session.beginDialog('/askAgreeAddResearch');
+        } else {
+            next();
+        }
+        },
+    function(session,results, next){
+        //console.log('results.response',results.response)   
+        if (results.response == "Yes") {
+            session.send('I will check what events occurred around that time...')
+            session.send('Unfortunately, I do not have that ability yet.')
+            //next();
+            session.endDialog();
+        } else {
+            session.send('OK. I will move on.')
+            session.endDialog();
+    }
+    },
+
+]);
+
+
 /////////////////////////////////////////////////////////////////////////////////////////
 // SUPPORTING DIALOG
+/////////////////////////////////////////////////////////////////////////////////////////
 
 // SUPPORTING DIALOG (/askEntityName): Prompts for entity choice, and returns entity object
 bot.dialog('/askEntityName', [
     function askCompany(session, args, next) {
-    var company;
-    var args = {};
-    var entity = builder.EntityRecognizer.findEntity(args.entities, 'CompanyName');
+        var company;
+        var args = {};
+        var entity = builder.EntityRecognizer.findEntity(args.entities, 'CompanyName');
 
-    if (entity) {
-        // Ensures specified company/entity is valid
-        // * This calls the underlying function Prompts.choice() uses to match a users response
-        //   to a list of choices. When you pass it an object it will use the field names as the
-        //   list of choices to match against. 
-        company = builder.EntityRecognizer.findBestMatch(data, entity.entity);
-    } else if (session.dialogData.company) {
-        // Just multi-turn over the existing company
-        company = session.dialogData.company;
+        if (entity) {
+            // Ensures specified company/entity is valid
+            // * This calls the underlying function Prompts.choice() uses to match a users response
+            //   to a list of choices. When you pass it an object it will use the field names as the
+            //   list of choices to match against. 
+            company = builder.EntityRecognizer.findBestMatch(data, entity.entity);
+        } else if (session.dialogData.company) {
+            // Just multi-turn over the existing company
+            company = session.dialogData.company;
+        }
+
+        // If company not set by passing Entity, then prompt choice
+        if (!company) {
+            // Lets see if the user just asked for a company we don't know about.
+            var txt = entity ? session.gettext(prompts.companyUnknown, { company: entity.entity }) : prompts.companyMissing;
+
+            // Prompt the user to pick a company from the list. They can also ask to cancel the operation.
+            builder.Prompts.choice(session, txt, data);
+        } else {
+            // Great! pass the company to the next step in the waterfall which will answer the question.
+            // * This will match the format of the response returned from Prompts.choice().
+            next({ response: company })
+        }
     }
-    
-    // If company not set by passing Entity, then prompt choice
-    if (!company) {
-        // Lets see if the user just asked for a company we don't know about.
-        var txt = entity ? session.gettext(prompts.companyUnknown, { company: entity.entity }) : prompts.companyMissing;
-        
-        // Prompt the user to pick a company from the list. They can also ask to cancel the operation.
-        builder.Prompts.choice(session, txt, data);
-    } else {
-        // Great! pass the company to the next step in the waterfall which will answer the question.
-        // * This will match the format of the response returned from Prompts.choice().
-        next({ response: company })
-    }
-}
 ]);
 
 // SUPPORTING DIALOG (/askCompareDate): Prompts for date choice, requires entity to have value from that date, and returns date.
 bot.dialog('/askCompareDate', [
-    function askDate (session, args, next) {
-    //var compareDate = session.userData.compareEntityData.compareDate;
-    var compareDate;
-    if (!compareDate) {
-        // TO DO: Add date validation
-        builder.Prompts.text(session, 'For what date?');
-    } else {
-        // TO DO: Store in session?
-        session.userData.compareEntityData.compareDate = compareDate
-        next({ response: compareDate })
+    function askDate(session, args, next) {
+        // TO DO: Different path if compare data already exists in session.userData.compareEntityData.compareDate
+        var compareDate;
+        if (!compareDate) {
+            // TO DO: Add all the fun that goes with converting dates from strings
+            // TO DO: Validate date against history available for entities selected
+            builder.Prompts.text(session, 'For what date? (Respond in YYYY-MM-DD format)');
+        } else {
+            // TO DO: Store in session?
+            session.userData.compareEntityData.compareDate = compareDate
+            next({ response: compareDate })
+        }
     }
+]);
+// SUPPORTING DIALOG (/askAgreeAddResearch): Prompts user to accept additional research
+bot.dialog('/askAgreeAddResearch', [
+    function (session, args, next) {
+        if (!session.dialogData.userAgree) {
+            // TO DO: Revise to use affirmative utterances
+            session.dialogData.userAgree = builder.Prompts.choice(session, "Do you agree?", ["Yes","No"]);
+        } else {
+            next();
+        }  
+    },
+    function (session, results){
+        if (results.response){
+            // NOTE: Because userAgree is choice, have to use .entity because object is returned
+            session.dialogData.userAgree = results.response.entity
+        }
+        console.log('session.dialogData.userAgree', session.dialogData.userAgree)
+        session.endDialogWithResult({ response: session.dialogData.userAgree});
     }
 ]);
 

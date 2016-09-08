@@ -6,10 +6,16 @@ module.exports = {
       description: 'Microsoft, a software corporation, develops licensed and support products and services ranging from personal use to enterprise application.',
       founders: 'Bill Gates and Paul Allen',
       website: 'http://www.microsoft.com',
-      priceHistory: 
+      priceHistory: [
           {
-              "1900-01-02": 2
+              asOfDate: "1900-01-01",
+              price: 2
+          },
+          {
+              asOfDate: "1900-01-02",
+              price: 3
           }
+     ]
   },
   'Apple': {
       acquisitions: 72,
@@ -18,11 +24,16 @@ module.exports = {
       description: 'Apple is a multinational corporation that designs, manufactures, and markets consumer electronics, personal computers, and software.',
       founders: 'Kevin Harvey, Steve Wozniak, Steve Jobs, and Ron Wayne',
       website: 'http://www.apple.com',
-      priceHistory: 
+      priceHistory: [
           {
-              "1900-01-01": 3,
-              "1900-01-02": 4
+              asOfDate: "1900-01-01",
+              price: 4
+          },
+          {
+              asOfDate: "1900-01-02",
+              price: 5
           }
+     ]
   },
   'Google': {
       acquisitions: 39,
@@ -31,11 +42,16 @@ module.exports = {
       description: 'Google is a multinational corporation that is specialized in internet-related services and products.',
       founders: 'Baris Gultekin, Michoel Ogince, Sergey Brin, and Larry Page',
       website: 'http://www.google.com',
-      priceHistory: 
+      priceHistory: [
           {
-              "1900-01-01": 5,
-              "1900-01-02": 6
+              asOfDate: "1900-01-01",
+              price: 6
+          },
+          {
+              asOfDate: "1900-01-02",
+              price: 7
           }
+     ]
   },
   'Amazon': {
       acquisitions: 58,
@@ -44,10 +60,15 @@ module.exports = {
       description: 'Amazon.com is an international e-commerce website for consumers, sellers, and content creators.',
       founders: 'Sachin Agarwal and Jeff Bezos',
       website: 'http://amazon.com',
-      priceHistory: 
+      priceHistory: [
           {
-              "1900-01-01": 7,
-              "1900-01-02": 8
+              asOfDate: "1900-01-01",
+              price: 8
+          },
+          {
+              asOfDate: "1900-01-02",
+              price: 9
           }
+     ]
   }
 }
